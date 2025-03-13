@@ -93,22 +93,14 @@ function rn_ppt_setup_test_environment() {
 
 	$current_index = intval($_GET['performance_test_setup']);
 	$queue_data = get_option('rn_ppt_queue');
-
-	if (!$queue_data || !isset($queue_data['queue'])) {
-		rn_ppt_finalize_testing();
-		return;
-	}
-
 	$queue = $queue_data['queue'];
 	$plugin_names = array_keys($queue);
 	$current_test = $plugin_names[$current_index] ?? null;
 
-	if (!$current_test) {
-		rn_ppt_finalize_testing();
-		return;
-	}
-
 	rn_ppt_configure_active_plugins($current_test, $queue[$current_test]);
+	
+	wp_cache_flush();
+	
 	$next_performance_test_url = home_url('?performance_test_measure=' . $current_index);
 }
 add_action( 'init', 'rn_ppt_setup_test_environment' );
@@ -125,21 +117,9 @@ function rn_ppt_measure_test_performance() {
 
 	$current_index = intval($_GET['performance_test_measure']);
 	$queue_data = get_option('rn_ppt_queue');
-
-	if (!$queue_data || !isset($queue_data['queue'])) {
-		rn_ppt_finalize_testing();
-		return;
-	}
-
 	$queue = $queue_data['queue'];
 	$plugin_names = array_keys($queue);
 	$current_test = $plugin_names[$current_index] ?? null;
-
-	if (!$current_test) {
-		rn_ppt_finalize_testing();
-		return;
-	}
-
 	$runs = get_option('rn_ppt_runs', 1);
 	$current_run = $queue_data['current_run'] ?? 1;
 
