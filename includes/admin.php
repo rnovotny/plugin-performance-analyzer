@@ -14,7 +14,8 @@ function rn_ppt_add_admin_menu() {
 add_action('admin_menu', 'rn_ppt_add_admin_menu' );
 
 function rn_ppt_render_admin_page() {
-	$results = get_option('rn_ppt_performance_results');
+	$results = get_option( 'rn_ppt_performance_results' );
+	$runs = get_option( 'rn_ppt_runs', 3 );
 	
 	wp_enqueue_style( 'rn_ppt_admin_style', RN_PPT_PLUGINS_URL . '/assets/css/admin.css', [], RN_PPT_PLUGIN_VER );
 	wp_enqueue_script( 'rn_ppt_chart_js', RN_PPT_PLUGINS_URL . '/assets/js/chart.js', [], RN_PPT_PLUGIN_VER, true );
@@ -26,7 +27,7 @@ function rn_ppt_render_admin_page() {
 		<h1>Plugin Performance Tester</h1>
 		<form method="post">
 			<label for="test_runs">Number of runs per test (1-10):</label>
-			<input type="number" id="test_runs" name="test_runs" min="1" max="10" value="1">
+			<input type="number" id="test_runs" name="test_runs" min="1" max="10" value="<?php echo intVal($runs) ?>">
 			<input type="hidden" name="start_performance_test" value="1">
 			<?php submit_button('Start Test'); ?>
 		</form>
