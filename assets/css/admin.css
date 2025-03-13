@@ -1,0 +1,28 @@
+.details-toggle { 
+	cursor: pointer; 
+	color: #0073aa; 
+}
+.details-table { 
+	display: none; 
+	margin-left: 20px;
+}
+.details-table.active { 
+	display: table; 
+}
+#chart-wrapper { 
+	margin: 0 auto;
+	display: grid;
+	grid-row-gap: 50px;
+	grid-template-columns: 1fr 1fr; 
+	max-width: 1100px;
+}
+.chart-container {
+	width: 500px; 
+	display: inline-block; 
+	padding: 10px; 
+	vertical-align: top; 
+}
+canvas { 
+	width: 500px !important; 
+	height: 500px !important; 
+}
