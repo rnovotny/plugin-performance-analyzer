@@ -30,18 +30,35 @@ include_once( RN_PPT_PLUGIN_DIR . '/includes/admin.php' );
  * Handles test initiation from admin panel
  */
 function rn_ppt_start_test_on_admin_request() {
-	if (!current_user_can('manage_options')) {
-		return;
+	
+	
+	if ( isset( $_POST['restore_plugins'] ) ) {
+		
+		if( !wp_verify_nonce( sanitize_text_field( $_POST['_wpnonce'] ), 'rn_ppt_admin_nonce' ) ) {
+			wp_die('Unauthorized, please log in and try the request again.');
+		}
+		
+		$original_plugins = get_option('rn_ppt_original_plugins', []);
+		update_option('active_plugins', $original_plugins);
+		delete_option('rn_ppt_original_plugins');
+		wp_safe_redirect(admin_url('tools.php?page=rn_ppt_render_admin_page'));
+		exit;
+		
 	}
-
-	if (isset($_POST['start_performance_test'])) {
+	
+	if ( isset( $_POST['start_performance_test'] ) ) {
+		
+		if( !wp_verify_nonce( sanitize_text_field( $_POST['_wpnonce'] ), 'rn_ppt_admin_nonce' ) ) {
+			wp_die('Unauthorized, please log in and try the request again.');
+		}
+		
 		// Reset previous results and queue
 		delete_option('rn_ppt_performance_results');
 		delete_option('rn_ppt_queue');
 		update_option('rn_ppt_testing', true);
 
 		// Set number of test runs (1-10)
-		$runs = isset($_POST['test_runs']) ? max(1, min(10, intval($_POST['test_runs']))) : 1;
+		$runs = isset($_POST['test_runs']) ? max(3, min(10, intval($_POST['test_runs']))) : 3;
 		update_option('rn_ppt_runs', $runs);
 
 		// Save original plugin state
@@ -147,48 +164,63 @@ add_action( 'template_redirect', 'rn_ppt_measure_test_performance' );
  * Records time and memory usage during test runs
  */
 function rn_ppt_record_performance_metrics() {
-	if (!isset($_GET['performance_test_measure']) || !get_option('rn_ppt_testing')) {
-		return;
-	}
+    if (!isset($_GET['performance_test_measure']) || !get_option('rn_ppt_testing')) {
+        return;
+    }
 
-	$current_index = intval($_GET['performance_test_measure']);
-	$queue_data = get_option('rn_ppt_queue');
-	$queue = $queue_data['queue'];
-	$plugin_names = array_keys($queue);
-	$current_test = $plugin_names[$current_index] ?? null;
+    $current_index = intval($_GET['performance_test_measure']);
+    $queue_data = get_option('rn_ppt_queue');
+    $queue = $queue_data['queue'];
+    $plugin_names = array_keys($queue);
+    $current_test = $plugin_names[$current_index] ?? null;
 
-	if (!$current_test) return;
+    if (!$current_test) return;
 
-	$start_time = microtime(true);
+    $start_time = microtime(true);
 
-	add_action('shutdown', function() use ($start_time, $current_test) {
-		$end_time = microtime(true);
-		$memory_peak = memory_get_peak_usage();
+    add_action('shutdown', function() use ($start_time, $current_test) {
+        $end_time = microtime(true);
+        $memory_peak = memory_get_peak_usage();
 
-		$results = get_option('rn_ppt_performance_results', []);
-		
-		if (!isset($results[$current_test]['runs'])) {
-			$results[$current_test]['runs'] = [];
-		}
+        $results = get_option('rn_ppt_performance_results', []);
+        
+        if (!isset($results[$current_test]['runs'])) {
+            $results[$current_test]['runs'] = [];
+        }
 
-		// Store individual run data
-		$run_data = [
-			'time' => ($end_time - $start_time) * 1000, // Convert to milliseconds
-			'memory' => $memory_peak
-		];
-		
-		$results[$current_test]['runs'][] = $run_data;
+        $run_data = [
+            'time' => ($end_time - $start_time) * 1000,
+            'memory' => $memory_peak
+        ];
+        
+        $results[$current_test]['runs'][] = $run_data;
 
-		// Calculate averages
-		$times = array_column($results[$current_test]['runs'], 'time');
-		$memories = array_column($results[$current_test]['runs'], 'memory');
-		$results[$current_test]['time'] = array_sum($times) / count($times);
-		$results[$current_test]['memory'] = array_sum($memories) / count($memories);
+        // Only calculate averages when we have all runs
+        $queue_data = get_option('rn_ppt_queue');
+        $runs = get_option('rn_ppt_runs', 3);
+        if (count($results[$current_test]['runs']) == $runs) {
+            $times = array_column($results[$current_test]['runs'], 'time');
+            $memories = array_column($results[$current_test]['runs'], 'memory');
+            
+            // Remove fastest and slowest
+            if (count($times) >= 3) {
+                sort($times);
+                array_shift($times); // Remove fastest
+                array_pop($times);   // Remove slowest
+                
+                sort($memories);
+                array_shift($memories); // Remove lowest memory
+                array_pop($memories);   // Remove highest memory
+            }
+            
+            $results[$current_test]['time'] = array_sum($times) / count($times);
+            $results[$current_test]['memory'] = array_sum($memories) / count($memories);
+        }
 
-		update_option('rn_ppt_performance_results', $results);
-	});
+        update_option('rn_ppt_performance_results', $results);
+    }, PHP_INT_MAX);
 }
-add_action( 'plugins_loaded', 'rn_ppt_record_performance_metrics' );
+add_action( 'plugins_loaded', 'rn_ppt_record_performance_metrics', PHP_INT_MIN );
 
 /**
  * Configures which plugins should be active for a test
@@ -217,7 +249,7 @@ function rn_ppt_finalize_testing($redirect = true) {
 	delete_option('rn_ppt_original_plugins');
 	
 	if ($redirect) {
-		wp_safe_redirect(admin_url('admin.php?page=plugin-performance-tester'));
+		wp_safe_redirect(admin_url('tools.php?page=rn_ppt_render_admin_page'));
 		exit;
 	}
 }

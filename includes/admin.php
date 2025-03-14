@@ -2,13 +2,13 @@
 
 
 function rn_ppt_add_admin_menu() {
-	add_menu_page(
+	add_submenu_page (
+		'tools.php',
 		'Plugin Performance',
 		'Plugin Performance',
 		'manage_options',
-		'plugin-performance-tester',
 		'rn_ppt_render_admin_page',
-		'dashicons-performance'
+		'rn_ppt_render_admin_page'
 	);
 }
 add_action('admin_menu', 'rn_ppt_add_admin_menu' );
@@ -16,7 +16,8 @@ add_action('admin_menu', 'rn_ppt_add_admin_menu' );
 function rn_ppt_render_admin_page() {
 	$results = get_option( 'rn_ppt_performance_results' );
 	$runs = get_option( 'rn_ppt_runs', 3 );
-	
+	$original_plugins = get_option('rn_ppt_original_plugins');
+
 	wp_enqueue_style( 'rn_ppt_admin_style', RN_PPT_PLUGINS_URL . '/assets/css/admin.css', [], RN_PPT_PLUGIN_VER );
 	wp_enqueue_script( 'rn_ppt_chart_js', RN_PPT_PLUGINS_URL . '/assets/js/chart.js', [], RN_PPT_PLUGIN_VER, true );
 	wp_enqueue_script( 'rn_ppt_admin_js', RN_PPT_PLUGINS_URL . '/assets/js/admin.js', ['rn_ppt_chart_js'], RN_PPT_PLUGIN_VER, true );
@@ -26,10 +27,13 @@ function rn_ppt_render_admin_page() {
 	<div class="wrap">
 		<h1>Plugin Performance Tester</h1>
 		<form method="post">
-			<label for="test_runs">Number of runs per test (1-10):</label>
-			<input type="number" id="test_runs" name="test_runs" min="1" max="10" value="<?php echo intVal($runs) ?>">
-			<input type="hidden" name="start_performance_test" value="1">
-			<?php submit_button('Start Test'); ?>
+			<?php wp_nonce_field( 'rn_ppt_admin_nonce' ); ?>
+			<label for="test_runs">Number of runs per test (3-10):</label>
+			<input type="number" id="test_runs" name="test_runs" min="3" max="10" value="<?php echo intVal($runs) ?>">
+			<?php submit_button( 'Start Test', 'primary', 'start_performance_test' ); ?>
+			<?php if( !empty( $original_plugins ) ) {
+				submit_button('Restore Active Plugins', 'secondary', 'restore_plugins' );
+			}?>
 		</form>
 	   
 		<?php if ($results) : ?>
