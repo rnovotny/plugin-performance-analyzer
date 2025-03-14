@@ -1,3 +1,6 @@
+.impact {
+	font-weight: bold;
+}
 .details-toggle { 
 	cursor: pointer; 
 	color: #0073aa; 
@@ -9,7 +12,7 @@
 .details-table.active { 
 	display: table; 
 }
-#chart-wrapper { 
+.chart-wrapper { 
 	margin: 0 auto;
 	display: grid;
 	grid-row-gap: 50px;
@@ -21,8 +24,4 @@
 	display: inline-block; 
 	padding: 10px; 
 	vertical-align: top; 
-}
-canvas { 
-	width: 500px !important; 
-	height: 500px !important; 
 }
